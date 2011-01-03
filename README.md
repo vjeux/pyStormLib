@@ -16,7 +16,7 @@ API
 
 Example
 -------
-A script that opens a MPQ and extract all the files inside the folder 'extract/'
+Extract all the files of a MPQ in the 'extract' folder.
 
     from storm import MPQ
     
