@@ -16,6 +16,8 @@ API
 
 Example
 -------
+A script that opens a MPQ and extract all the files inside the folder 'extract/'
+
     from storm import MPQ
     
     mpq = MPQ('wow-update-13316.MPQ')
