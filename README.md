@@ -6,14 +6,18 @@ This is a really basic Python Wrapper for [Zezula StormLib](http://www.zezula.ne
 API
 ---
 * **MPQ**(path): Open a MPQ
+
 * **list**(mask='*'): Return a list of all the files matching the mask
+
 * **extract**(mpq_path, local_path=mpq_path): Extract a file.
-    * mpq_path can be a file returned by **list**
+mpq_path can be a file returned by **list**
 
 
 
 Example
 -------
+    from storm import MPQ
+    
     mpq = MPQ('wow-update-13316.MPQ')
     for file in mpq.list():
         print file
