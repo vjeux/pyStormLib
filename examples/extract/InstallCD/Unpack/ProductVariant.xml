@@ -1,0 +1,5 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<product_data>
+BaseInstallRegistryKey             World of Warcraft\PTR/InstallPath
+BaseUninstallRegistryKey           World of Warcraft\PTR/UninstallPath
+</product_data>
