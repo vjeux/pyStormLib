@@ -7,7 +7,11 @@ API
 ---
 * **MPQ**(path): Open a MPQ
 
-* **list**(mask='*'): Return a list of all the files matching the mask
+* **list**(mask='*'): List of all the files matching the mask
+
+* **read**(path): Content of the file
+
+* **has**(path): Does the MPQ have the file?
 
 * **extract**(mpq_path, local_path=mpq_path): Extract a file.
     * mpq_path can be a file returned by **list**
@@ -16,11 +20,19 @@ API
 
 Example
 -------
-Extract all the files of a MPQ in the 'extract' folder.
+	from storm import MPQ
 
-    from storm import MPQ
-    
-    mpq = MPQ('wow-update-13316.MPQ')
-    for file in mpq.list():
-        print file
-        mpq.extract(file, 'extract/' + str(file))
+	mpq = MPQ('wow-update-13316.MPQ')
+
+	print '[list] List TXT and ANIM files'
+	print list(mpq.list('*.txt')) + list(mpq.list('*.anim'))
+
+	print '[extract] Extracting all the enUS DBC'
+	for file in mpq.list('enUS*.dbc'):
+		print file
+		mpq.extract(file, 'extract/' + str(file))
+
+	print '[read] Reading a few TXT'
+	for file in mpq.list('en*.txt'):
+		print file
+		print mpq.read(file)
