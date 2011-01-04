@@ -1,34 +1,38 @@
 
 # Python StormLib Wrapper
 # by Vjeux <vjeuxx@gmail.com> http://blog.vjeux.com/
+# http://github.com/vjeux/pyStormLib
 
-# API Documentation
+# StormLib API Documentation
 # http://www.zezula.net/en/mpq/Stormlib.html
 
 from ctypes import *
-import os, re
+import os, re, glob
 
 storm = cdll.LoadLibrary(re.sub('/[^/]+$', '', __file__) + '/libStorm.so')
 
 # Wrapper around storm to check for errors
 class StormWrapper(type):
 	def __getattr__(self, attr):
-		return lambda *arguments: Storm.__call(func=getattr(storm, attr), *arguments)
+		return lambda *arguments: Storm.__call(name=attr,func=getattr(storm, attr), *arguments)
 
 	def __call(*arguments, **keywords):
 		# Call the function
 		func = keywords['func']
 		ret = func(*arguments[1:])
 
+		# In order to debug: print every call
+		# print keywords['name'], arguments[1:], ret
+
 		# Handle errors
 		code = storm.GetLastError()
-		if (code not in (0, 106, 107)): # "No more files" and "End of file" are not real errors
+		if (ret == 0 and code not in (0, 106, 107)): # "No more files" and "End of file" are not real errors
 			message = code in MPQErrors and MPQErrors[code] or 'Error #%i' % code
 			raise Exception(message)
 
 		return ret
 
-# MetaClass trick to be able to use Storm.<function name>()
+# MetaClass trick to be able to handle Storm.<function path>() with __getattr__
 class Storm:
 	__metaclass__ = StormWrapper
 
@@ -64,7 +68,7 @@ MPQErrors = {
 class MPQFileData(Structure):
 	_fields_ = [
 		('filename', c_char * 1024),
-		('plainname', c_char_p),
+		('plainpath', c_char_p),
 		('hashindex', c_int, 32),
 		('blockindex', c_int, 32),
 		('filesize', c_int, 32),
@@ -80,12 +84,21 @@ class MPQFileData(Structure):
 
 	def __str__(self):
 		return self.filename
+	
+	def __hash__(self):
+		return hash(self.filename)
+	
+	def __eq__(self, other):
+		return self.filename == other.filename
+
+	def __ne__(self, other):
+		return self.filename != other.filename
 
 class MPQ():
 	mpq = c_int()
 
 	def __init__(self, filename):
-		"""Open a MPQ Archive"""
+		"""Open the MPQ Archive"""
 		Storm.SFileOpenArchive(filename, 0, 0x0100, byref(self.mpq))
 	
 	def close(self):
@@ -95,19 +108,27 @@ class MPQ():
 	def list(self, mask='*'):
 		"""List all the files matching the mask"""
 
+		ret = set([])
+
 		# Initial Find
 		file = MPQFileData()
 		find = Storm.SFileFindFirstFile(self.mpq, mask, byref(file), None)
+		if not find:
+			return
+
 		yield file
+		ret.add(file)
 
 		# Go through the results
 		file = MPQFileData()
 		while Storm.SFileFindNextFile(find, byref(file)):
-			yield file
+			if file not in ret:
+				yield file
+				ret.add(file)
 			file = MPQFileData()
 
 	def extract(self, mpq_path, local_path=None):
-		"""Extract a file"""
+		"""Extract the file"""
 
 		# Handle arguments
 		if isinstance(mpq_path, MPQFileData):
@@ -125,27 +146,27 @@ class MPQ():
 		# Extract!
 		Storm.SFileExtractFile(self.mpq, mpq_path, local_path)
 
-	def has(self, name):
-		"""Does the MPQ have the file"""
+	def has(self, path):
+		"""Does the MPQ have the file?"""
 
-		return Storm.SFileHasFile(self.mpq, name)
+		return Storm.SFileHasFile(self.mpq, path)
 	
-	def read(self, name):
-		"""Read the file content"""
+	def read(self, path):
+		"""Return the file content"""
 
 		# Handle argument
-		if isinstance(name, MPQFileData):
-			name = name.filename
+		if isinstance(path, MPQFileData):
+			path = path.filename
 
 		# Open the file
 		file = c_int()
-		Storm.SFileOpenFileEx(self.mpq, name, 0, byref(file))
+		Storm.SFileOpenFileEx(self.mpq, path, 1, byref(file))
 
 		# Get the Size
 		high = c_int()
 		low = Storm.SFileGetFileSize(file, byref(high))
-		size = int(high.value << 32) + low
-		
+		size = high.value * pow(2, 32) + low
+
 		# Read the File
 		data = c_buffer(size)
 		read = c_int()
@@ -153,5 +174,14 @@ class MPQ():
 
 		# Close and Return
 		Storm.SFileCloseFile(file)
-		return data.value;
+		return data.raw;
 
+	def patch(self, path, prefix):
+		"""Add MPQ as patches"""
+
+		# Handle arguments
+		path_list = isinstance(path, str) and sorted(glob.glob(path)) or path
+
+		# Add the Patchs
+		for path in path_list:
+			Storm.SFileOpenPatchArchive(self.mpq, path, prefix, 0)
