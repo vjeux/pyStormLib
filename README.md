@@ -7,7 +7,11 @@ API
 ---
 * **MPQ**(path): Open a MPQ
 
-* **list**(mask='*'): Return a list of all the files matching the mask
+* **list**(mask='*'): List of all the files matching the mask
+
+* **read**(path): Content of the file
+
+* **has**(path): Does the MPQ have the file?
 
 * **extract**(mpq_path, local_path=mpq_path): Extract a file.
     * mpq_path can be a file returned by **list**
