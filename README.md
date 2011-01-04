@@ -3,6 +3,7 @@
 
 Python Wrapper for [Zezula StormLib](http://www.zezula.net/en/mpq/stormlib.html) that manages MPQ files. It covers all the Read abilities of StormLib.
 
+It is being used in production at [db.mmo-champion.com](http://db.mmo-champion.com/). Feel free to drop me a message if you are using it :)
 
 API
 ---
