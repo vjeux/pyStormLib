@@ -5,6 +5,8 @@ Python Wrapper for [Zezula StormLib](http://www.zezula.net/en/mpq/stormlib.html)
 
 It is being used in production at [db.mmo-champion.com](http://db.mmo-champion.com/). Feel free to drop me a message if you are using it :)
 
+Licence: [Do What The Fuck You Want To Public License](http://sam.zoy.org/wtfpl/)
+
 API
 ---
 * **MPQ**(path): Open a MPQ
