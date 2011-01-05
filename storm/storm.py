@@ -14,20 +14,20 @@ storm = cdll.LoadLibrary(re.sub('/[^/]+$', '', __file__) + '/libStorm.so')
 # Wrapper around storm to check for errors
 class StormWrapper(type):
 	def __getattr__(self, attr):
-		return lambda *arguments: Storm.__call(name=attr,func=getattr(storm, attr), *arguments)
+		return lambda *arguments: Storm.__call(name=attr, func=getattr(storm, attr), *arguments)
 
 	def __call(*arguments, **keywords):
 		# Call the function
 		func = keywords['func']
 		ret = func(*arguments[1:])
 
-		# In order to debug: print every call
+		# In order to debug: uncomment to print every call
 		# print keywords['name'], arguments[1:], ret
 
 		# Handle errors
 		code = storm.GetLastError()
-		if (ret == 0 and code not in (0, 106, 107)): # "No more files" and "End of file" are not real errors
-			message = code in MPQErrors and MPQErrors[code] or 'Error #%i' % code
+		if ret == 0 and code not in (0, 106, 107): # "No more files" and "End of file" are not real errors
+			message = '%s\nCall: %s %s %s' % (MPQErrors.get(code, 'Error #%i' % code), keywords['name'], arguments[1:], ret)
 			raise Exception(message)
 
 		return ret
@@ -43,8 +43,8 @@ MPQErrors = {
 	10003: "ERROR_INTERNAL_FILE The givn operation is not allowed on internal file",
 
 	0: "ERROR_NO_SIGNATURE SFileVerifyArchive: There is no signature in the MPQ",
-	1: "ERROR_VERIFY_FAILED SFileVerifyArchive: There was an error during verifying signature (like no memory)",
-	2: "ERROR_WEAK_SIGNATURE_OK SFileVerifyArchive: There is a weak signature and sign check passed",
+#	1: "ERROR_VERIFY_FAILED SFileVerifyArchive: There was an error during verifying signature (like no memory)",
+#	2: "ERROR_WEAK_SIGNATURE_OK SFileVerifyArchive: There is a weak signature and sign check passed",
 	3: "ERROR_WEAK_SIGNATURE_ERROR SFileVerifyArchive: There is a weak signature but sign check failed",
 	4: "ERROR_STRONG_SIGNATURE_OK SFileVerifyArchive: There is a strong signature and sign check passed",
 	5: "ERROR_STRONG_SIGNATURE_ERROR SFileVerifyArchive: There is a strong signature but sign check failed",
@@ -105,27 +105,31 @@ class MPQ():
 		"""Close the MPQ Archive"""
 		Storm.SFileCloseArchive(self.mpq)
 
-	def list(self, mask='*'):
+	def list(self, *arguments):
 		"""List all the files matching the mask"""
 
 		ret = set([])
 
-		# Initial Find
-		file = MPQFileData()
-		find = Storm.SFileFindFirstFile(self.mpq, mask, byref(file), None)
-		if not find:
-			return
+		if len(arguments) == 0:
+			arguments = ['*']
 
-		yield file
-		ret.add(file)
-
-		# Go through the results
-		file = MPQFileData()
-		while Storm.SFileFindNextFile(find, byref(file)):
-			if file not in ret:
-				yield file
-				ret.add(file)
+		for mask in arguments:
+			# Initial Find
 			file = MPQFileData()
+			find = Storm.SFileFindFirstFile(self.mpq, mask, byref(file), None)
+			if not find:
+				return
+
+			yield file
+			ret.add(file)
+
+			# Go through the results
+			file = MPQFileData()
+			while Storm.SFileFindNextFile(find, byref(file)):
+				if file not in ret:
+					yield file
+					ret.add(file)
+				file = MPQFileData()
 
 	def extract(self, mpq_path, local_path=None):
 		"""Extract the file"""
@@ -174,13 +178,13 @@ class MPQ():
 
 		# Close and Return
 		Storm.SFileCloseFile(file)
-		return data.raw;
+		return data.raw
 
 	def patch(self, path, prefix):
 		"""Add MPQ as patches"""
 
 		# Handle arguments
-		path_list = isinstance(path, str) and sorted(glob.glob(path)) or path
+		path_list = sorted(glob.glob(path)) if isinstance(path, str) else path
 
 		# Add the Patchs
 		for path in path_list:
