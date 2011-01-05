@@ -6,10 +6,10 @@
 # StormLib API Documentation
 # http://www.zezula.net/en/mpq/Stormlib.html
 
-from ctypes import *
-import os, re, glob
+from ctypes import cdll, Structure, byref, c_char, c_char_p, c_int
+import os, glob
 
-storm = cdll.LoadLibrary(re.sub('/[^/]+$', '', __file__) + '/libStorm.so')
+storm = cdll.LoadLibrary(os.path.dirname(__file__) + '/libStorm.so')
 
 # Wrapper around storm to check for errors
 class StormWrapper(type):
@@ -40,14 +40,8 @@ MPQErrors = {
 	10000: "ERROR_AVI_FILE No MPQ file, but AVI file.",
 	10001: "ERROR_UNKNOWN_FILE_KEY Returned by SFileReadFile when can't find file key",
 	10002: "ERROR_CHECKSUM_ERROR Returned by SFileReadFile when sector CRC doesn't match",
-	10003: "ERROR_INTERNAL_FILE The givn operation is not allowed on internal file",
-
-	0: "ERROR_NO_SIGNATURE SFileVerifyArchive: There is no signature in the MPQ",
-#	1: "ERROR_VERIFY_FAILED SFileVerifyArchive: There was an error during verifying signature (like no memory)",
-#	2: "ERROR_WEAK_SIGNATURE_OK SFileVerifyArchive: There is a weak signature and sign check passed",
-	3: "ERROR_WEAK_SIGNATURE_ERROR SFileVerifyArchive: There is a weak signature but sign check failed",
-	4: "ERROR_STRONG_SIGNATURE_OK SFileVerifyArchive: There is a strong signature and sign check passed",
-	5: "ERROR_STRONG_SIGNATURE_ERROR SFileVerifyArchive: There is a strong signature but sign check failed",
+	10003: "ERROR_INTERNAL_FILE The given operation is not allowed on internal file",
+	10004: "ERROR_BASE_FILE_MISSING The file is present as incremental patch file, but base file is missing",
 
 	2: "ERROR_FILE_NOT_FOUND",
 	1: "ERROR_ACCESS_DENIED",
@@ -143,7 +137,7 @@ class MPQ():
 		# Create the directories
 		local_path = local_path.replace('\\', '/')
 		try:
-			os.makedirs(re.sub('/[^/]+$', '', local_path))
+			os.makedirs(os.path.dirname(local_path))
 		except Exception:
 			pass
 
@@ -153,7 +147,15 @@ class MPQ():
 	def has(self, path):
 		"""Does the MPQ have the file?"""
 
-		return Storm.SFileHasFile(self.mpq, path)
+		# Handle argument
+		if isinstance(path, MPQFileData):
+			path = path.filename
+
+		try:
+			Storm.SFileHasFile(self.mpq, path)
+			return True
+		except:
+			return False
 	
 	def read(self, path):
 		"""Return the file content"""
