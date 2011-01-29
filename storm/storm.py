@@ -6,8 +6,8 @@
 # StormLib API Documentation
 # http://www.zezula.net/en/mpq/Stormlib.html
 
-from ctypes import cdll, Structure, byref, c_char, c_char_p, c_int
-import os, glob
+from ctypes import cdll, Structure, byref, c_char, c_char_p, c_int, c_buffer
+import os, glob, sys
 
 storm = cdll.LoadLibrary(os.path.dirname(__file__) + '/libStorm.so')
 
@@ -17,16 +17,19 @@ class StormWrapper(type):
 		return lambda *arguments: Storm.__call(name=attr, func=getattr(storm, attr), *arguments)
 
 	def __call(*arguments, **keywords):
+		# In order to debug: uncomment to print every call
+		#print keywords['name'], arguments[1:],
+		
 		# Call the function
 		func = keywords['func']
 		ret = func(*arguments[1:])
 
 		# In order to debug: uncomment to print every call
-		# print keywords['name'], arguments[1:], ret
+		#print ret
 
 		# Handle errors
 		code = storm.GetLastError()
-		if ret == 0 and code not in (0, 106, 107): # "No more files" and "End of file" are not real errors
+		if ret != 0 and code not in (0, 106, 107): # "No more files" and "End of file" are not real errors
 			message = '%s\nCall: %s %s %s' % (MPQErrors.get(code, 'Error #%i' % code), keywords['name'], arguments[1:], ret)
 			raise Exception(message)
 
@@ -73,6 +76,29 @@ class MPQFileData(Structure):
 		('locale', c_int, 32)
 	]
 
+	mpq = None
+	def __init__(self, mpq):
+		self.mpq = mpq
+
+	@property
+	def path(self):
+		"""Return a path with / instead of \ """
+		return self.filename.replace('\\', '/')
+
+	@property
+	def basename(self):
+		return os.path.basename(self.path)
+	
+	@property
+	def dirname(self):
+		return os.path.dirname(self.path)
+
+	def extract(self, target=None):
+		return self.mpq.extract(self.filename, target)
+
+	def read(self):
+		return self.mpq.read(self.filename)
+
 	def __repr__(self):
 		return self.filename
 
@@ -93,6 +119,9 @@ class MPQ():
 
 	def __init__(self, filename):
 		"""Open the MPQ Archive"""
+
+		if not os.path.exists(filename):
+			raise "ERROR_FILE_NOT_FOUND %s" % filename
 		Storm.SFileOpenArchive(filename, 0, 0x0100, byref(self.mpq))
 	
 	def close(self):
@@ -109,7 +138,7 @@ class MPQ():
 
 		for mask in arguments:
 			# Initial Find
-			file = MPQFileData()
+			file = MPQFileData(self)
 			find = Storm.SFileFindFirstFile(self.mpq, mask, byref(file), None)
 			if not find:
 				return
@@ -118,12 +147,12 @@ class MPQ():
 			ret.add(file)
 
 			# Go through the results
-			file = MPQFileData()
+			file = MPQFileData(self)
 			while Storm.SFileFindNextFile(find, byref(file)):
 				if file not in ret:
 					yield file
 					ret.add(file)
-				file = MPQFileData()
+				file = MPQFileData(self)
 
 	def extract(self, mpq_path, local_path=None):
 		"""Extract the file"""
@@ -142,7 +171,10 @@ class MPQ():
 			pass
 
 		# Extract!
-		Storm.SFileExtractFile(self.mpq, mpq_path, local_path)
+		Storm.SFileExtractFile(self.mpq, mpq_path, local_path, 1)
+
+		# Allow chaining
+		return self
 
 	def has(self, path):
 		"""Does the MPQ have the file?"""
@@ -182,7 +214,7 @@ class MPQ():
 		Storm.SFileCloseFile(file)
 		return data.raw
 
-	def patch(self, path, prefix):
+	def patch(self, path, prefix=''):
 		"""Add MPQ as patches"""
 
 		# Handle arguments
@@ -191,3 +223,6 @@ class MPQ():
 		# Add the Patchs
 		for path in path_list:
 			Storm.SFileOpenPatchArchive(self.mpq, path, prefix, 0)
+
+		# Allow chaining
+		return self

@@ -1,1 +1,1 @@
-from storm import *
+from storm import MPQ
