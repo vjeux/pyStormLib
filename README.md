@@ -53,3 +53,17 @@ Extract all the DBC files applying the patch files.
 
 	for file in mpq.list('*.dbc'):
 		mpq.extract(file)
+
+
+Installation
+=======
+
+* Download and Compile the latest version of StormLib: http://www.zezula.net/en/mpq/download.html
+* Put stormLib.so in the storm/ folder
+
+    wget http://www.zezula.net/download/stormlib_beta.zip
+    unzip stormlib_beta.zip
+    cd StormLib
+    mv Makefile.linux Makefile
+    make
+    cp libStorm.so ../storm/
