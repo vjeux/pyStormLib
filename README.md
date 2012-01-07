@@ -27,33 +27,37 @@ API
 Example
 -------
 Random usage
-	from storm import MPQ
 
-	mpq = MPQ('wow-update-13316.MPQ')
+```python
+from storm import MPQ
 
-	print '[list] List TXT and ANIM files'
-	print list(mpq.list('*.txt')) + list(mpq.list('*.anim'))
+mpq = MPQ('wow-update-13316.MPQ')
 
-	print '[extract] Extracting all the enUS DBC'
-	for file in mpq.list('enUS*.dbc'):
-		print file
-		mpq.extract(file, 'extract/' + str(file))
+print '[list] List TXT and ANIM files'
+print list(mpq.list('*.txt')) + list(mpq.list('*.anim'))
 
-	print '[read] Reading a few TXT'
-	for file in mpq.list('en*.txt'):
-		print file
-		print mpq.read(file)
+print '[extract] Extracting all the enUS DBC'
+for file in mpq.list('enUS*.dbc'):
+	print file
+	mpq.extract(file, 'extract/' + str(file))
+
+print '[read] Reading a few TXT'
+for file in mpq.list('en*.txt'):
+	print file
+	print mpq.read(file)
+```
 
 Extract all the DBC files applying the patch files.
 
-	from storm import MPQ
+```python
+from storm import MPQ
 
-	mpq = MPQ('../wow/enGB/locale-enGB.MPQ')
-	mpq.patch('../wow/wow-update-*.MPQ', 'enGB')
+mpq = MPQ('../wow/enGB/locale-enGB.MPQ')
+mpq.patch('../wow/wow-update-*.MPQ', 'enGB')
 
-	for file in mpq.list('*.dbc'):
-		mpq.extract(file)
-
+for file in mpq.list('*.dbc'):
+	mpq.extract(file)
+```
 
 Installation
 =======
@@ -63,9 +67,11 @@ Installation
 
 Here's a sample command line explanation
 
-	wget http://www.zezula.net/download/stormlib_beta.zip
-	unzip stormlib_beta.zip
-	cd StormLib
-	mv Makefile.linux Makefile
-	make
-	cp libStorm.so ../storm/
+```
+wget http://www.zezula.net/download/stormlib_beta.zip
+unzip stormlib_beta.zip
+cd StormLib
+mv Makefile.linux Makefile
+make
+cp libStorm.so ../storm/
+```
